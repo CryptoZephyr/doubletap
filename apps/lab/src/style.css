@@ -33,6 +33,9 @@ a:hover { color: var(--color-action-hover); }
 .bar-inner { display: flex; align-items: center; gap: 24px; max-width: 1040px; margin: 0 auto; padding: 16px 24px; }
 .wordmark { font-family: var(--font-serif); font-size: 22px; line-height: 28px; color: var(--color-text); text-decoration: none; }
 .wordmark:hover { color: var(--color-text); }
+.wordmark { display: inline-flex; align-items: center; gap: 10px; }
+.wordmark .logo { width: 36px; height: 37px; display: block; }
+.foot .wordmark .logo { width: 28px; height: 29px; }
 .nav { display: flex; gap: 24px; margin-left: auto; }
 .nav a { color: var(--color-text); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
 .nav a:hover { text-decoration: underline; }

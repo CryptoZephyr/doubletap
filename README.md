@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/logo-light.svg" />
+  <img src="docs/logo.svg" alt="doubletap logo" width="96" />
+</picture>
+
 # doubletap
 
 doubletap makes sure something in your Appwrite app happens once, even when the same request arrives 100 times at the same moment.
