@@ -125,7 +125,15 @@ async function setupTrace() {
   await ensureIndex('trace', 'run', ['run']);
 }
 
+async function setupJobs() {
+  await ensureTable('jobs');
+  await ensureStringColumn('jobs', 'holder', 64);
+  await ensureIntegerColumn('jobs', 'expiresAt');
+  await ensureIntegerColumn('jobs', 'version');
+}
+
 await setupCharges();
 await setupTrace();
+await setupJobs();
 await doubletap({ tablesDB, databaseId, tableId: 'doubletap', namespace: 'pay' }).setup();
-console.log('Pay demo tables are ready: charges, trace, doubletap');
+console.log('Pay demo tables are ready: charges, trace, jobs, doubletap');

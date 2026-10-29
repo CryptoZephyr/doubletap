@@ -5,7 +5,7 @@ import { createTablesDB, databaseId, parseBody, trace, validRequest } from './sh
 export default async ({ req, res }) => {
   const body = parseBody(req);
   if (!validRequest(body)) {
-    return res.json({ error: 'orderId, run, and requestId must be safe strings from 1 to 36 characters' }, 400);
+    return res.json({ error: 'orderId, run, and requestId must be safe strings from 1 to 36 characters; mode must be pay or job' }, 400);
   }
 
   const tablesDB = createTablesDB(req);
@@ -13,6 +13,15 @@ export default async ({ req, res }) => {
 
   const context = { run: body.run, requestId: body.requestId, via: 'doubletap' };
   await trace(tablesDB, { ...context, phase: 'start' });
+  if (body.mode === 'job') {
+    const dt = doubletap({ tablesDB, databaseId, tableId: 'doubletap', namespace: 'job' });
+    const lease = await dt.lease(body.orderId, { ttlMs: 60_000 });
+    const status = lease ? 'won' : 'refused';
+    await trace(tablesDB, { ...context, phase: status });
+    await trace(tablesDB, { ...context, phase: 'end' });
+    return res.json({ status });
+  }
+
   const dt = doubletap({ tablesDB, databaseId, tableId: 'doubletap', namespace: 'pay' });
   const result = await dt.once(body.orderId, async (onceContext) => {
     const chargeId = ID.unique();

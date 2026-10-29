@@ -10,40 +10,73 @@
       <header>
         <h1>doubletap race lab</h1>
         <p class="lede">
-          Tap Pay 100 times at once on the same order. Both Appwrite Functions below run the same
-          check: "has this order been paid?" One checks and then writes. The other uses doubletap.
+          Two real races on Appwrite. Each button sends 100 requests at the same moment to two
+          Appwrite Functions. One side uses the code most developers write. The other uses doubletap.
         </p>
-        <button id="run" type="button">Tap Pay 100 times</button>
-        <p id="status" class="status" aria-live="polite"></p>
+        <p id="cooldown" class="status" aria-live="polite"></p>
       </header>
-      <section class="sides">
-        <article class="side" data-via="naive">
-          <h2>Without doubletap</h2>
-          <p class="code">read order, if unpaid, charge</p>
-          <p class="big"><span class="charges">0</span> <span class="unit">charges</span></p>
-          <p class="sub"><span class="done">0</span> of <span class="total">100</span> requests finished</p>
-          <div class="timeline"></div>
-        </article>
-        <article class="side" data-via="doubletap">
-          <h2>With doubletap</h2>
-          <p class="code">dt.once(orderId, charge)</p>
-          <p class="big"><span class="charges">0</span> <span class="unit">charges</span></p>
-          <p class="sub"><span class="done">0</span> of <span class="total">100</span> requests finished</p>
-          <div class="timeline"></div>
-        </article>
-      </section>
-      <section class="legend">
-        <h2>Reading the replay</h2>
-        <p>
-          Each line is one request, drawn from when the function started to when it answered.
-          <span class="key key-read"></span> it read the order and saw no charge.
-          <span class="key key-charge"></span> it charged the card.
-          <span class="key key-replay"></span> it got back the first charge instead of making a new one.
+
+      <section class="race" data-race="pay">
+        <h2 class="race-title">1. Someone taps Pay 100 times</h2>
+        <p class="race-lede">
+          Both functions ask "has this order been paid?" before charging. One checks and then
+          writes. The other wraps the charge in doubletap.
         </p>
-        <p>
-          Without doubletap, several requests read "unpaid" before any charge landed, so each one
-          charged. With doubletap, one request claims the order in the database first and the rest
-          wait for its result.
+        <button class="run" type="button">Tap Pay 100 times</button>
+        <p class="status" aria-live="polite"></p>
+        <div class="sides">
+          <article class="side" data-via="naive">
+            <h3>Without doubletap</h3>
+            <p class="code">read order, if unpaid, charge</p>
+            <p class="big"><span class="count">0</span> <span class="unit">charges</span></p>
+            <p class="sub"><span class="done">0</span> of <span class="total">100</span> requests finished</p>
+            <div class="timeline"></div>
+          </article>
+          <article class="side" data-via="doubletap">
+            <h3>With doubletap</h3>
+            <p class="code">dt.once(orderId, charge)</p>
+            <p class="big"><span class="count">0</span> <span class="unit">charges</span></p>
+            <p class="sub"><span class="done">0</span> of <span class="total">100</span> requests finished</p>
+            <div class="timeline"></div>
+          </article>
+        </div>
+        <p class="legend">
+          Each line is one request, from when the function started to when it answered.
+          <span class="key key-read"></span> it read the order and saw no charge.
+          <span class="key key-hit"></span> it charged the card.
+          <span class="key key-miss"></span> it got back the first charge instead of making a new one.
+        </p>
+      </section>
+
+      <section class="race" data-race="job">
+        <h2 class="race-title">2. 100 workers grab the same job</h2>
+        <p class="race-lede">
+          A background job should run on exactly one worker. The left side uses an Appwrite
+          transaction: read the job, and if nobody holds it, take it and commit. The right side
+          uses a doubletap lease.
+        </p>
+        <button class="run" type="button">Start 100 workers</button>
+        <p class="status" aria-live="polite"></p>
+        <div class="sides">
+          <article class="side" data-via="naive">
+            <h3>Appwrite transaction</h3>
+            <p class="code">read job, if free, take it, commit</p>
+            <p class="big"><span class="count">0</span> <span class="unit">workers own the job</span></p>
+            <p class="sub"><span class="done">0</span> of <span class="total">100</span> workers finished</p>
+            <div class="timeline"></div>
+          </article>
+          <article class="side" data-via="doubletap">
+            <h3>With doubletap</h3>
+            <p class="code">dt.lease(jobId)</p>
+            <p class="big"><span class="count">0</span> <span class="unit">workers own the job</span></p>
+            <p class="sub"><span class="done">0</span> of <span class="total">100</span> workers finished</p>
+            <div class="timeline"></div>
+          </article>
+        </div>
+        <p class="legend">
+          Each line is one worker. <span class="key key-hit"></span> it committed and believes it owns
+          the job. <span class="key key-miss"></span> it was refused. More than one red dot on the left
+          means two workers run the same job at once.
         </p>
       </section>
     </main>

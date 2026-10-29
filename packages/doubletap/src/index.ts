@@ -76,6 +76,10 @@ function isAlreadyExists(error: unknown): boolean {
   return (error as { code?: number } | null)?.code === 409;
 }
 
+function isNotFound(error: unknown): boolean {
+  return (error as { code?: number } | null)?.code === 404;
+}
+
 function keyHash(namespace: string, key: string): string {
   return `d${createHash('sha256').update(`${namespace}:${key}`).digest('hex').slice(0, 24)}`;
 }
@@ -109,12 +113,12 @@ export function doubletap(options: DoubletapOptions): Doubletap {
 
   async function waitUntilAvailable(
     label: string,
-    read: () => Promise<{ status: string; error?: string | null }>,
+    read: () => Promise<unknown>,
   ): Promise<void> {
     const deadline = Date.now() + readyTimeoutMs;
     while (true) {
-      const resource = await read();
-      if (resource.status === 'available') return;
+      const resource = await read() as { status?: string; error?: string | null };
+      if (resource.status === undefined || resource.status === 'available') return;
       if (resource.status === 'failed') {
         throw new Error(`${label} failed: ${resource.error ?? 'unknown Appwrite error'}`);
       }
@@ -250,53 +254,82 @@ export function doubletap(options: DoubletapOptions): Doubletap {
 
   return {
     async setup(): Promise<void> {
-      await createIfMissing(() =>
-        tablesDB.createTable({ databaseId, tableId, name: tableId }),
-      );
-      await tablesDB.getTable({ databaseId, tableId });
+      async function ensureResource(
+        label: string,
+        read: () => Promise<unknown>,
+        create: () => Promise<unknown>,
+      ): Promise<void> {
+        try {
+          await read();
+        } catch (error) {
+          if (!isNotFound(error)) throw error;
+          await createIfMissing(create);
+        }
+        await waitUntilAvailable(label, read);
+      }
 
       const columns = [
-        () => tablesDB.createStringColumn({
-          databaseId, tableId, key: 'k', size: 32, required: false,
-        }),
-        () => tablesDB.createIntegerColumn({
-          databaseId, tableId, key: 'gen', required: false,
-        }),
-        () => tablesDB.createStringColumn({
-          databaseId, tableId, key: 'state', size: 16, required: false,
-        }),
-        () => tablesDB.createStringColumn({
-          databaseId, tableId, key: 'holder', size: 64, required: false,
-        }),
-        () => tablesDB.createIntegerColumn({
-          databaseId, tableId, key: 'expiresAt', required: false,
-        }),
-        () => tablesDB.createStringColumn({
-          databaseId, tableId, key: 'result', size: 8192, required: false,
-        }),
+        {
+          key: 'k',
+          create: () => tablesDB.createStringColumn({
+            databaseId, tableId, key: 'k', size: 32, required: false,
+          }),
+        },
+        {
+          key: 'gen',
+          create: () => tablesDB.createIntegerColumn({
+            databaseId, tableId, key: 'gen', required: false,
+          }),
+        },
+        {
+          key: 'state',
+          create: () => tablesDB.createStringColumn({
+            databaseId, tableId, key: 'state', size: 16, required: false,
+          }),
+        },
+        {
+          key: 'holder',
+          create: () => tablesDB.createStringColumn({
+            databaseId, tableId, key: 'holder', size: 64, required: false,
+          }),
+        },
+        {
+          key: 'expiresAt',
+          create: () => tablesDB.createIntegerColumn({
+            databaseId, tableId, key: 'expiresAt', required: false,
+          }),
+        },
+        {
+          key: 'result',
+          create: () => tablesDB.createStringColumn({
+            databaseId, tableId, key: 'result', size: 8192, required: false,
+          }),
+        },
       ];
-      const keys = ['k', 'gen', 'state', 'holder', 'expiresAt', 'result'];
-      for (let i = 0; i < columns.length; i += 1) {
-        await createIfMissing(columns[i]);
-        const key = keys[i];
-        await waitUntilAvailable(
-          `column "${key}"`,
-          () => tablesDB.getColumn({ databaseId, tableId, key }),
+      await ensureResource(
+        `table "${tableId}"`,
+        () => tablesDB.getTable({ databaseId, tableId }),
+        () => tablesDB.createTable({ databaseId, tableId, name: tableId }),
+      );
+
+      for (const column of columns) {
+        await ensureResource(
+          `column "${column.key}"`,
+          () => tablesDB.getColumn({ databaseId, tableId, key: column.key }),
+          column.create,
         );
       }
 
-      await createIfMissing(() =>
-        tablesDB.createIndex({
+      await ensureResource(
+        'index "k_gen"',
+        () => tablesDB.getIndex({ databaseId, tableId, key: 'k_gen' }),
+        () => tablesDB.createIndex({
           databaseId,
           tableId,
           key: 'k_gen',
           type: TablesDBIndexType.Key,
           columns: ['k', 'gen'],
         }),
-      );
-      await waitUntilAvailable(
-        'index "k_gen"',
-        () => tablesDB.getIndex({ databaseId, tableId, key: 'k_gen' }),
       );
     },
 

@@ -7,7 +7,8 @@
 body { margin: 0; }
 main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
 h1 { font-size: 1.6rem; margin: 0 0 8px; }
-h2 { font-size: 1.05rem; margin: 0 0 4px; }
+h2 { font-size: 1.25rem; margin: 0 0 6px; }
+h3 { font-size: 1.05rem; margin: 0 0 4px; }
 .lede { max-width: 720px; margin: 0 0 20px; color: #444; }
 button {
   font: inherit; font-weight: 600; padding: 10px 20px; border: 1px solid #1a1a1a;
@@ -25,8 +26,10 @@ button:disabled { opacity: 0.5; cursor: wait; }
 .sub { color: #666; margin: 6px 0 14px; font-size: 0.9rem; }
 .timeline svg { width: 100%; height: auto; display: block; }
 .timeline .empty { color: #888; font-size: 0.9rem; padding: 24px 0; }
-.legend { margin-top: 28px; max-width: 760px; color: #444; }
+.race { margin-top: 36px; padding-top: 28px; border-top: 1px solid #e2e2e2; }
+.race-lede { max-width: 720px; margin: 0 0 16px; color: #444; }
+.legend { margin-top: 16px; max-width: 760px; color: #444; font-size: 0.92rem; }
 .key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 4px 0 8px; vertical-align: middle; }
 .key-read { border: 2px solid #1a1a1a; width: 6px; height: 6px; }
-.key-charge { background: #b42318; }
-.key-replay { background: #9aa0a6; }
+.key-hit { background: #b42318; }
+.key-miss { background: #9aa0a6; }
