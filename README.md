@@ -9,12 +9,12 @@ doubletap makes sure something in your Appwrite app happens once, even when the 
 
 It's for developers building on Appwrite who charge cards, send emails, hand out sign-up bonuses or run background jobs. Say a customer taps Pay twice on a slow connection and their phone retries. With ordinary Appwrite code, the order can get charged several times. With doubletap, it's charged once and every retry gets the same receipt back.
 
-Live demo: https://doubletap-lab.appwrite.network · Video: not available yet · Docs: this README · Submission: not linked yet
+Live demo: https://doubletap-lab.appwrite.network · Integrate: [Add doubletap to your app](#add-doubletap-to-your-app) · Video: not available yet · Docs: this README · Submission: not linked yet
 
 ![The race lab after one live run: 10 charges without doubletap, 1 with it](docs/race-lab.png)
 
 Built with: Appwrite TablesDB · Appwrite Functions · Appwrite Realtime · Appwrite Sites · TypeScript
-Status: working on Appwrite Cloud (Frankfurt, Free plan). Published on npm as [appwrite-doubletap](https://www.npmjs.com/package/appwrite-doubletap) 0.1.0.
+Status: working on Appwrite Cloud (Frankfurt, Free plan). Published on npm as [appwrite-doubletap](https://www.npmjs.com/package/appwrite-doubletap) 0.2.0.
 
 ## The problem
 
@@ -103,33 +103,43 @@ Checked on 29 Oct 2026:
 
 The project is on the Free plan, which allows two Functions. Both are used, so the lab waits a minute between races to stay inside the monthly execution limit.
 
-## Using the package
+## Add doubletap to your app
 
-Install from npm:
+These steps take an existing Appwrite project from "might charge twice" to "charges once". Most apps only need steps 1, 2, 3a and 5.
+
+### 1. Install
 
 ```bash
 npm install appwrite-doubletap node-appwrite
 ```
 
+The package runs on Node and uses ES modules (`import`), with node-appwrite 31 or later.
+
+### 2. Create the doubletap table once
+
+doubletap keeps its claims in one table inside a database you already have. Run this once, from a script or your deploy step, with a server API key that has the databases, tables and rows read and write scopes:
+
 ```ts
 import { Client, TablesDB } from 'node-appwrite';
 import { doubletap } from 'appwrite-doubletap';
 
-const tablesDB = new TablesDB(new Client().setEndpoint(endpoint).setProject(projectId).setKey(key));
-const dt = doubletap({ tablesDB, databaseId: 'main' });
-await dt.setup(); // creates the doubletap table once
+const client = new Client()
+  .setEndpoint(process.env.APPWRITE_ENDPOINT)
+  .setProject(process.env.APPWRITE_PROJECT_ID)
+  .setKey(process.env.APPWRITE_API_KEY);
 
-const { value, replayed } = await dt.once(`pay:${orderId}`, async (ctx) =>
-  chargeCard(orderId, { idempotencyKey: ctx.idempotencyKey }),
-);
-
-const lease = await dt.lease('nightly-report', { ttlMs: 60_000 });
-if (lease) {
-  try { await runReport(lease.token); } finally { await lease.release(); }
-}
+await doubletap({ tablesDB: new TablesDB(client), databaseId: 'main' }).setup();
 ```
 
-In an Appwrite Function, wrap the entrypoint instead:
+It creates a table called `doubletap` with six columns and one index. Running it again is safe. The database must already exist, and you can pass `tableId` to use another table name.
+
+### 3. Wrap the thing that must happen once
+
+Pick the one that matches your code.
+
+#### 3a. A whole Appwrite Function
+
+Wrap the Function's entrypoint:
 
 ```js
 import { idempotent } from 'appwrite-doubletap';
@@ -140,11 +150,78 @@ export default idempotent(async ({ req, res, idempotencyKey }) => {
 }, { databaseId: 'main' });
 ```
 
-Callers send the key as a header, for example `functions.createExecution({ functionId: 'pay', body, headers: { 'x-idempotency-key': orderId } })`. Event-triggered Functions get a key from the event automatically. Callers who aren't signed in share one `guest` scope, so their keys should be random IDs.
+In the Function's settings, give it the `rows.read` and `rows.write` scopes. Appwrite then hands it a short-lived key, so you don't store one yourself.
 
-`dt.prune()` deletes finished `once()` keys older than a day. Lease chains are kept, because deleting them could let two workers hold the same lease.
+Your app sends a key with each call. Use something that's the same for every retry of one action, like the order ID:
 
-`once()` options are `ttlMs` (how long a claim lives before a retry may take over), `waitMs` and `pollMs`. If waiting runs past `waitMs`, it throws `DoubletapTimeoutError`. Results must be JSON and at most 8192 characters.
+```js
+await functions.createExecution({
+  functionId: 'pay',
+  body: JSON.stringify({ orderId }),
+  headers: { 'x-idempotency-key': orderId },
+});
+```
+
+The first call runs and its response carries `x-doubletap: first`. Every copy gets that same response back with `x-doubletap: replayed`, and your code doesn't run again. If a copy waits more than 20 seconds for the first call to finish, it gets a 409 with `x-doubletap: in-progress` and can retry.
+
+Keys are scoped to the signed-in user. Callers who aren't signed in share one `guest` scope, so their keys should be random IDs and their responses shouldn't contain private data. Functions triggered by an Appwrite event, like a row being created, get a key from the event and need no header. A call with no key runs normally, without protection.
+
+#### 3b. One step inside your own server code
+
+```ts
+const dt = doubletap({ tablesDB, databaseId: 'main' });
+
+const { value, replayed } = await dt.once(`pay:${orderId}`, async (ctx) =>
+  chargeCard(orderId, { idempotencyKey: ctx.idempotencyKey }),
+);
+```
+
+The first call runs the function. Every other call with the same key gets its result back with `replayed: true`. If that call crashes, a retry takes over after `ttlMs`, which is 30 seconds by default. Pass `ctx.idempotencyKey` to your payment provider too, so a slow first call that finishes late still can't charge twice.
+
+#### 3c. A background job only one worker should run
+
+```ts
+const lease = await dt.lease('nightly-report', { ttlMs: 60_000 });
+if (lease) {
+  try {
+    await runReport(lease.token);
+  } finally {
+    await lease.release();
+  }
+}
+```
+
+`lease()` returns `null` when another worker holds the job. For a long job, call `lease.renew()` before `ttlMs` runs out. If it returns `false`, another worker has taken over and this one should stop. If a worker dies, exactly one other worker gets the job once the lease expires.
+
+### 4. Clean up old rows
+
+Finished keys stay in the table until you prune them. Run this from a scheduled Function or a cron job:
+
+```ts
+await dt.prune({ olderThanMs: 30 * 24 * 60 * 60 * 1000 });
+```
+
+It deletes finished `once()` keys older than the cutoff, which is one day by default, and keeps leases. A retry of a pruned key runs again, so pick a cutoff far longer than any retry you expect.
+
+### 5. Prove it
+
+Point `prove` at your Function before and after the change. It sends 100 identical calls at once and counts the rows they made:
+
+```bash
+npx appwrite-doubletap prove --function pay --count 100 \
+  --body '{"orderId":"$RUN"}' --header 'x-idempotency-key=$RUN' \
+  --table charges --where 'orderId=$RUN' --database main --expect 1
+```
+
+Without doubletap you'll usually see more than 1. With it you should see exactly 1. [The prove command](#the-prove-command) covers every option.
+
+### 6. Teach your coding agent
+
+The agent skill in [skills/doubletap/SKILL.md](skills/doubletap/SKILL.md) teaches Claude Code, Codex and other coding agents to spot this bug and use doubletap when they write Appwrite code. Copy it into your agent's skills folder, for example `.claude/skills/doubletap/SKILL.md` for Claude Code. It isn't in the npm package, so take it from this repo.
+
+### Options
+
+`once()` takes `ttlMs` (how long a claim lives before a retry may take over, 30 seconds by default), `waitMs` (how long a copy waits for the first result, 20 seconds by default) and `pollMs`. If waiting runs past `waitMs`, it throws `DoubletapTimeoutError`. Results must be JSON and at most 8192 characters. `idempotent()` also takes `header`, `key`, `ttlMs`, `waitMs`, `tableId` and `namespace`.
 
 ## The prove command
 
