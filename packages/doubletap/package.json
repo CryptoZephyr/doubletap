@@ -1,6 +1,6 @@
 {
   "name": "appwrite-doubletap",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Exactly-once claims and worker leases for Appwrite TablesDB",
   "license": "MIT",
   "repository": {
@@ -20,7 +20,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "skills"
   ],
   "bin": {
     "doubletap": "dist/cli.js"
@@ -28,7 +29,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepack": "node -e \"require('fs').cpSync('../../skills','skills',{recursive:true})\""
   },
   "peerDependencies": {
     "node-appwrite": "^31.0.0"

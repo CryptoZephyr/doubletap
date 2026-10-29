@@ -43,3 +43,13 @@ claim TTL or realistic worker stall.
 ```ts
 const result = await dt.prune({ olderThanMs: 30 * 24 * 60 * 60 * 1000 });
 ```
+
+## Agent skill
+
+The package ships an agent skill in the open [Agent Skills](https://agentskills.io)
+format. It teaches coding agents to spot check-then-write races in Appwrite code
+and use doubletap instead. Add it to every coding agent in your project with:
+
+```bash
+npx skills add ./node_modules/appwrite-doubletap/skills
+```

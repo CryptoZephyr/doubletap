@@ -14,7 +14,7 @@ Live demo: https://doubletap-lab.appwrite.network · Integrate: [Add doubletap t
 ![The race lab after one live run: 10 charges without doubletap, 1 with it](docs/race-lab.png)
 
 Built with: Appwrite TablesDB · Appwrite Functions · Appwrite Realtime · Appwrite Sites · TypeScript
-Status: working on Appwrite Cloud (Frankfurt, Free plan). Published on npm as [appwrite-doubletap](https://www.npmjs.com/package/appwrite-doubletap) 0.2.0.
+Status: working on Appwrite Cloud (Frankfurt, Free plan). Published on npm as [appwrite-doubletap](https://www.npmjs.com/package/appwrite-doubletap) 0.2.1.
 
 ## The problem
 
@@ -98,7 +98,7 @@ Checked on 29 Oct 2026:
 - Race lab: https://doubletap-lab.appwrite.network, on Appwrite Sites.
 - Functions `pay-naive` and `pay-doubletap`, Node 22, Appwrite Cloud Frankfurt.
 - TablesDB database `doubletap` with the tables `charges`, `jobs`, `trace` and `doubletap`.
-- npm package `appwrite-doubletap` 0.2.0, installed fresh and run with `npx appwrite-doubletap prove`.
+- npm package `appwrite-doubletap` 0.2.1, installed fresh and run with `npx appwrite-doubletap prove`.
 - `pay-doubletap` endpoint mode, wrapped in `idempotent()`: 100 identical requests with the same `x-idempotency-key` made 1 charge in each of 4 runs.
 
 The project is on the Free plan, which allows two Functions. Both are used, so the lab waits a minute between races to stay inside the monthly execution limit.
@@ -219,15 +219,15 @@ Without doubletap you'll usually see more than 1. With it you should see exactly
 
 The agent skill in [skills/doubletap/SKILL.md](skills/doubletap/SKILL.md) teaches a coding agent to spot this bug and use doubletap when it writes Appwrite code. It follows the open [Agent Skills](https://agentskills.io) format, so the same file works in any agent that supports skills.
 
-Install it with one command from your project folder (needs Node 22.20 or later):
+It ships inside the npm package. After `npm install appwrite-doubletap`, add it with one command from your project folder (needs Node 22.20 or later):
 
 ```bash
-npx skills add CryptoZephyr/doubletap --skill doubletap
+npx skills add ./node_modules/appwrite-doubletap/skills
 ```
 
 The [skills](https://github.com/vercel-labs/skills) installer finds the coding agents you have and puts the skill where each one looks. Add `-g` to install it for all your projects, or `-a codex -a cursor` to choose agents yourself. It supports Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, OpenCode, Cline and about 70 others.
 
-To install by hand, copy the `skills/doubletap` folder into your project:
+To install by hand, copy `node_modules/appwrite-doubletap/skills/doubletap` into your project:
 
 | Agent | Folder |
 | --- | --- |
@@ -238,7 +238,7 @@ To install by hand, copy the `skills/doubletap` folder into your project:
 For an agent without skill support, this prints the skill as a prompt. Paste it into the chat, or into your `AGENTS.md` or rules file:
 
 ```bash
-npx skills use CryptoZephyr/doubletap@doubletap
+npx skills use ./node_modules/appwrite-doubletap/skills/doubletap
 ```
 
 ### Options
