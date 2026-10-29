@@ -3,18 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Watch 100 simultaneous requests hit two Appwrite Functions. Plain check-then-write code charges several times. doubletap charges once." />
     <title>doubletap race lab</title>
   </head>
   <body>
+    <header>
+      <div class="bar">
+        <div class="bar-inner">
+          <a class="wordmark" href="/">doubletap</a>
+          <nav class="nav" aria-label="Project">
+            <a href="https://github.com/CryptoZephyr/doubletap">GitHub</a>
+            <a href="https://www.npmjs.com/package/appwrite-doubletap">npm</a>
+          </nav>
+        </div>
+      </div>
+      <div class="note">
+        <div class="bar-inner">This lab runs on a free Appwrite project. No real cards are charged.</div>
+      </div>
+    </header>
     <main id="app">
-      <header>
-        <h1>doubletap race lab</h1>
+      <section class="hero">
+        <h1 class="headline">Tap Pay 100 times. Get charged once.</h1>
         <p class="lede">
           Two real races on Appwrite. Each button sends 100 requests at the same moment to two
-          Appwrite Functions. One side uses the code most developers write. The other uses doubletap.
+          Appwrite Functions. One side runs the code most developers write. The other runs doubletap.
         </p>
-        <p id="cooldown" class="status" aria-live="polite"></p>
-      </header>
+        <p class="code">npm install appwrite-doubletap</p>
+      </section>
+
+      <div class="notice" id="cooldown-box" hidden>
+        <span class="notice-label">Info</span>
+        <p id="cooldown" aria-live="polite"></p>
+      </div>
 
       <section class="race" data-race="pay">
         <h2 class="race-title">1. Someone taps Pay 100 times</h2>
@@ -22,29 +42,37 @@
           Both functions ask "has this order been paid?" before charging. One checks and then
           writes. The other wraps the charge in doubletap.
         </p>
-        <button class="run" type="button">Tap Pay 100 times</button>
-        <p class="status" aria-live="polite"></p>
+        <div class="actions">
+          <button class="run" type="button"><span class="label">Tap Pay 100 times</span></button>
+          <p class="status" aria-live="polite"></p>
+        </div>
         <div class="sides">
           <article class="side" data-via="naive">
-            <h3>Without doubletap</h3>
+            <p class="tag">Without doubletap</p>
             <p class="code">read order, if unpaid, charge</p>
-            <p class="big"><span class="count">0</span> <span class="unit">charges</span></p>
-            <p class="sub"><span class="done">0</span> of <span class="total">100</span> requests finished</p>
+            <dl class="receipt">
+              <div class="line line-main"><dt>Cards charged</dt><span class="dots" aria-hidden="true"></span><dd class="count">0</dd></div>
+              <div class="line"><dt>Requests finished</dt><span class="dots" aria-hidden="true"></span><dd><span class="done">0</span> of <span class="total">100</span></dd></div>
+            </dl>
+            <p class="stamp" hidden><span class="stamp-word"></span><span class="stamp-figure"></span></p>
             <div class="timeline"></div>
           </article>
           <article class="side" data-via="doubletap">
-            <h3>With doubletap</h3>
+            <p class="tag">With doubletap</p>
             <p class="code">dt.once(orderId, charge)</p>
-            <p class="big"><span class="count">0</span> <span class="unit">charges</span></p>
-            <p class="sub"><span class="done">0</span> of <span class="total">100</span> requests finished</p>
+            <dl class="receipt">
+              <div class="line line-main"><dt>Cards charged</dt><span class="dots" aria-hidden="true"></span><dd class="count">0</dd></div>
+              <div class="line"><dt>Requests finished</dt><span class="dots" aria-hidden="true"></span><dd><span class="done">0</span> of <span class="total">100</span></dd></div>
+            </dl>
+            <p class="stamp" hidden><span class="stamp-word"></span><span class="stamp-figure"></span></p>
             <div class="timeline"></div>
           </article>
         </div>
         <p class="legend">
           Each line is one request, from when the function started to when it answered.
-          <span class="key key-read"></span> it read the order and saw no charge.
-          <span class="key key-hit"></span> it charged the card.
-          <span class="key key-miss"></span> it got back the first charge instead of making a new one.
+          <span class="key key-read"></span>it read the order and saw no charge.
+          <span class="key key-hit"></span>it charged the card.
+          <span class="key key-miss"></span>it got back the first charge instead of making a new one.
         </p>
       </section>
 
@@ -55,31 +83,50 @@
           transaction: read the job, and if nobody holds it, take it and commit. The right side
           uses a doubletap lease.
         </p>
-        <button class="run" type="button">Start 100 workers</button>
-        <p class="status" aria-live="polite"></p>
+        <div class="actions">
+          <button class="run" type="button"><span class="label">Start 100 workers</span></button>
+          <p class="status" aria-live="polite"></p>
+        </div>
         <div class="sides">
           <article class="side" data-via="naive">
-            <h3>Appwrite transaction</h3>
+            <p class="tag">Appwrite transaction</p>
             <p class="code">read job, if free, take it, commit</p>
-            <p class="big"><span class="count">0</span> <span class="unit">workers own the job</span></p>
-            <p class="sub"><span class="done">0</span> of <span class="total">100</span> workers finished</p>
+            <dl class="receipt">
+              <div class="line line-main"><dt>Workers who think they own the job</dt><span class="dots" aria-hidden="true"></span><dd class="count">0</dd></div>
+              <div class="line"><dt>Workers finished</dt><span class="dots" aria-hidden="true"></span><dd><span class="done">0</span> of <span class="total">100</span></dd></div>
+            </dl>
+            <p class="stamp" hidden><span class="stamp-word"></span><span class="stamp-figure"></span></p>
             <div class="timeline"></div>
           </article>
           <article class="side" data-via="doubletap">
-            <h3>With doubletap</h3>
+            <p class="tag">With doubletap</p>
             <p class="code">dt.lease(jobId)</p>
-            <p class="big"><span class="count">0</span> <span class="unit">workers own the job</span></p>
-            <p class="sub"><span class="done">0</span> of <span class="total">100</span> workers finished</p>
+            <dl class="receipt">
+              <div class="line line-main"><dt>Workers who think they own the job</dt><span class="dots" aria-hidden="true"></span><dd class="count">0</dd></div>
+              <div class="line"><dt>Workers finished</dt><span class="dots" aria-hidden="true"></span><dd><span class="done">0</span> of <span class="total">100</span></dd></div>
+            </dl>
+            <p class="stamp" hidden><span class="stamp-word"></span><span class="stamp-figure"></span></p>
             <div class="timeline"></div>
           </article>
         </div>
         <p class="legend">
-          Each line is one worker. <span class="key key-hit"></span> it committed and believes it owns
-          the job. <span class="key key-miss"></span> it was refused. More than one red dot on the left
+          Each line is one worker. <span class="key key-hit"></span>it committed and believes it owns
+          the job. <span class="key key-miss"></span>it was refused. More than one red dot on the left
           means two workers run the same job at once.
         </p>
       </section>
     </main>
+    <footer class="foot">
+      <div class="bar-inner">
+        <a class="wordmark" href="/">doubletap</a>
+        <span>Exactly-once claims and worker leases for Appwrite TablesDB. MIT licensed.</span>
+        <nav class="nav" aria-label="Footer">
+          <a href="https://github.com/CryptoZephyr/doubletap">Source</a>
+          <a href="https://www.npmjs.com/package/appwrite-doubletap">npm</a>
+          <a href="https://appwrite.io">Built on Appwrite</a>
+        </nav>
+      </div>
+    </footer>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

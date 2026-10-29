@@ -1,3 +1,8 @@
+import '@fontsource/ibm-plex-sans/latin-400.css';
+import '@fontsource/ibm-plex-sans/latin-500.css';
+import '@fontsource/ibm-plex-sans/latin-600.css';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import '@fontsource-variable/newsreader/opsz.css';
 import './style.css';
 import { Channel, Client, ExecutionMethod, Functions, Query, TablesDB } from 'appwrite';
 
@@ -15,7 +20,7 @@ interface RaceConfig {
   mode: RaceId;
   hitPhase: string;
   missPhases: string[];
-  units: [string, string];
+  verdict: (n: number) => [string, string];
   summary: (naive: number, dt: number) => string;
   count: (run: string) => Promise<number>;
   isHit: (row: { orderId?: string; run?: string; phase?: string }, run: string) => boolean;
@@ -27,6 +32,7 @@ const tablesDB = new TablesDB(client);
 const functionIds: Record<Via, string> = { naive: 'pay-naive', doubletap: 'pay-doubletap' };
 const vias: Via[] = ['naive', 'doubletap'];
 const cooldown = document.querySelector<HTMLParagraphElement>('#cooldown')!;
+const cooldownBox = document.querySelector<HTMLDivElement>('#cooldown-box')!;
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -40,7 +46,7 @@ const races: Record<RaceId, RaceConfig> = {
     mode: 'pay',
     hitPhase: 'charge',
     missPhases: ['replay'],
-    units: ['charge', 'charges'],
+    verdict: (n) => n === 1 ? ['Charged once', '1 charge'] : ['Charged more than once', `${n} charges`],
     summary: (n, d) =>
       `One order, ${taps} taps each. Without doubletap: ${plural(n, 'charge', 'charges')}. With doubletap: ${plural(d, 'charge', 'charges')}.`,
     count: (run) => total('charges', [Query.equal('orderId', run)]),
@@ -50,7 +56,7 @@ const races: Record<RaceId, RaceConfig> = {
     mode: 'job',
     hitPhase: 'won',
     missPhases: ['refused'],
-    units: ['worker owns the job', 'workers own the job'],
+    verdict: (n) => n === 1 ? ['One owner', '1 worker'] : ['Same job, several owners', `${n} workers`],
     summary: (n, d) =>
       `One job, ${taps} workers each. With a transaction: ${plural(n, 'owner', 'owners')}. With doubletap: ${plural(d, 'owner', 'owners')}.`,
     count: (run) => total('trace', [Query.equal('run', run), Query.equal('phase', 'won')]),
@@ -72,8 +78,19 @@ function setText(race: RaceId, via: Via, selector: string, value: string | numbe
 }
 function setCount(race: RaceId, via: Via, n: number) {
   setText(race, via, '.count', n);
-  setText(race, via, '.unit', n === 1 ? races[race].units[0] : races[race].units[1]);
   side(race, via).classList.toggle('bad', n > 1);
+}
+function setStamp(race: RaceId, via: Via, n: number | null) {
+  const stamp = side(race, via).querySelector<HTMLElement>('.stamp')!;
+  stamp.hidden = n === null || n === 0;
+  stamp.removeAttribute('data-land');
+  if (stamp.hidden || n === null) return;
+  const [word, figure] = races[race].verdict(n);
+  stamp.dataset.kind = n === 1 ? 'once' : 'many';
+  stamp.querySelector('.stamp-word')!.textContent = word;
+  stamp.querySelector('.stamp-figure')!.textContent = figure;
+  void stamp.offsetWidth;
+  stamp.setAttribute('data-land', '');
 }
 
 async function listAll<T>(tableId: string, field: string, value: string): Promise<T[]> {
@@ -132,22 +149,22 @@ function drawTimeline(race: RaceId, via: Via, rows: TraceRow[], t0: number, t1: 
     const end = events[events.length - 1].at;
     svg.append(el('line', {
       x1: x(start), x2: Math.max(x(end), x(start) + 1), y1: y, y2: y,
-      stroke: hit ? '#1a1a1a' : '#d0d0d0', 'stroke-width': hit ? 1.6 : 1,
+      stroke: hit ? '#1F2421' : '#DAD2C3', 'stroke-width': hit ? 1.6 : 1,
     }));
     for (const e of events) {
       if (e.phase === 'read-empty') {
-        svg.append(el('circle', { cx: x(e.at), cy: y, r: 1.8, fill: '#fff', stroke: '#1a1a1a', 'stroke-width': 0.9 }));
+        svg.append(el('circle', { cx: x(e.at), cy: y, r: 1.8, fill: '#FFFFFF', stroke: '#1F2421', 'stroke-width': 0.9 }));
       } else if (e.phase === hitPhase) {
-        svg.append(el('circle', { cx: x(e.at), cy: y, r: 2.4, fill: '#b42318' }));
+        svg.append(el('circle', { cx: x(e.at), cy: y, r: 2.4, fill: '#B3402F' }));
       } else if (missPhases.includes(e.phase)) {
-        svg.append(el('circle', { cx: x(e.at), cy: y, r: 1.5, fill: '#9aa0a6' }));
+        svg.append(el('circle', { cx: x(e.at), cy: y, r: 1.5, fill: '#7A7F78' }));
       }
     }
   });
   const axisY = top + ordered.length * laneH + 6;
-  svg.append(el('line', { x1: left, x2: width - right, y1: axisY, y2: axisY, stroke: '#bbb', 'stroke-width': 0.8 }));
+  svg.append(el('line', { x1: left, x2: width - right, y1: axisY, y2: axisY, stroke: '#DAD2C3', 'stroke-width': 0.8 }));
   const label = (text: string, xPos: number, anchor: string) => {
-    const t = el('text', { x: xPos, y: axisY + 12, 'font-size': 9, fill: '#666', 'text-anchor': anchor });
+    const t = el('text', { x: xPos, y: axisY + 12, 'font-size': 9, fill: '#5C625D', 'font-family': 'IBM Plex Mono, monospace', 'text-anchor': anchor });
     t.textContent = text;
     svg.append(t);
   };
@@ -168,6 +185,7 @@ function refreshButtons() {
   cooldown.textContent = !running && wait > 0
     ? `To keep this free demo within Appwrite's Free plan, the next race can start in ${Math.ceil(wait / 1000)} s.`
     : '';
+  cooldownBox.hidden = cooldown.textContent === '';
 }
 setInterval(refreshButtons, 1000);
 refreshButtons();
@@ -186,6 +204,7 @@ async function run(race: RaceId) {
     setCount(race, via, 0);
     setText(race, via, '.done', 0);
     setText(race, via, '.total', taps);
+    setStamp(race, via, null);
     side(race, via).querySelector('.timeline')!.replaceChildren();
   }
   status.textContent = `Sending ${taps} requests to each function...`;
@@ -244,6 +263,8 @@ async function run(race: RaceId) {
     ]);
     setCount(race, 'naive', naiveCount);
     setCount(race, 'doubletap', dtCount);
+    setStamp(race, 'naive', naiveCount);
+    setStamp(race, 'doubletap', dtCount);
 
     const all = [...naiveTrace, ...dtTrace].map((r) => r.at);
     if (all.length) {
