@@ -22,7 +22,7 @@ button:disabled { opacity: 0.5; cursor: wait; }
 .code { font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; color: #555; margin: 0 0 12px; }
 .big { margin: 0; font-size: 3rem; font-weight: 700; line-height: 1; }
 .big .unit { font-size: 1rem; font-weight: 500; color: #555; }
-.side.bad .charges { color: #b42318; }
+.side.bad .count { color: #b42318; }
 .sub { color: #666; margin: 6px 0 14px; font-size: 0.9rem; }
 .timeline svg { width: 100%; height: auto; display: block; }
 .timeline .empty { color: #888; font-size: 0.9rem; padding: 24px 0; }

@@ -31,7 +31,7 @@ doubletap gives you four things:
 
 1. A package with two calls. `once(key, fn)` runs a payment or job exactly once per key, and every retry gets the first result back. `lease(name)` gives one worker a job at a time and passes it to exactly one other worker if the first one dies.
 2. A `prove` command. Point it at your own Appwrite Function, and it fires 100 identical requests at once and counts what happened, for example "100 requests -> 22 rows in charges (expected 1). DUPLICATES FOUND".
-3. A race lab, a web page that runs the race live. One button sends 100 taps to two Pay functions side by side, and a replay draws every request as a line so you can see the ones that read "unpaid" and charged.
+3. A race lab, a web page that runs two races live. In the first, 100 taps hit two Pay functions side by side, and a replay draws every request as a line so you can see the ones that read "unpaid" and charged. In the second, 100 workers grab one job, once through an Appwrite transaction and once through a doubletap lease, so you can watch the transaction hand the same job to several workers.
 4. An agent skill that teaches Claude Code, Codex and other coding agents to spot the check-then-write bug in Appwrite code and write the safe version instead.
 
 ## How it works
@@ -58,8 +58,9 @@ The demo uses the rest of Appwrite too. The two Pay endpoints are Appwrite Funct
 1. Open https://doubletap-lab.appwrite.network.
 2. Press Tap Pay 100 times.
 3. Wait about 10 seconds. The left side shows several charges and the right side shows 1.
+4. After the one-minute cooldown, press Start 100 workers. The transaction side usually shows 2 to 5 workers owning the job, and the doubletap side shows 1.
 
-Each press runs 200 real Function executions on a Free plan project, so please don't spam it.
+Each press runs 200 real Function executions on a Free plan project, so the lab waits a minute between races.
 
 ## Using the package
 
@@ -111,8 +112,8 @@ All of these ran against a real Appwrite Cloud project on the Free plan.
 | --- | --- | --- |
 | 100 taps on the plain check-then-charge Function | 1 charge | 7, 17, 18 and 22 charges (prove), 9 and 24 (race lab) |
 | 100 taps on the doubletap Function | 1 charge | 1 charge every run |
-| 100 workers take over an expired lock with a TablesDB transaction | 1 winner | 2 to 5 winners per round |
-| 100 workers take over an expired lease with doubletap | 1 winner | 1 winner in 13 of 13 rounds |
+| 100 workers take over an expired lock with a TablesDB transaction | 1 winner | 2 to 5 winners per round in scripts, 3, 5 and 4 through the deployed Function, 2 in the race lab |
+| 100 workers take over an expired lease with doubletap | 1 winner | 1 winner in 13 of 13 script rounds, 3 of 3 Function rounds and the race lab run |
 | A request claims the payment, then crashes, and 100 retries follow | 1 charge, 1 receipt | 1 charge and the same receipt for all retries |
 | A request stalls past its lease and wakes up late | refused | its late result is refused, but its card charge already went out (see Limitations) |
 
