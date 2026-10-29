@@ -1,6 +1,8 @@
 ---
 name: doubletap
 description: Use when writing or reviewing Appwrite code (TablesDB, Functions) where something must happen once or by one worker at a time. Triggers include payments, refunds, orders, sign-up bonuses, coupon redemption, sending an email or webhook once, job queues, scheduled workers, "check if it exists then create", "if not paid then charge", retries, double-clicks, and transactions used as a lock. Don't use it for counters and stock limits that Appwrite's bounded increment and decrement already handle.
+license: MIT
+compatibility: Works in any agent that supports the Agent Skills format. Targets Appwrite projects that use node-appwrite or Appwrite Functions on Node, and installs appwrite-doubletap from npm.
 ---
 
 # doubletap

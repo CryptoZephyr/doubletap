@@ -39,7 +39,7 @@ doubletap gives you four things:
 1. A package with two calls. `once(key, fn)` runs a payment or job exactly once per key, and every retry gets the first result back. `lease(name)` gives one worker a job at a time and passes it to exactly one other worker if the first one dies. For Appwrite Functions, `idempotent(handler)` does the same in one line by reading the key from the request.
 2. A `prove` command. Point it at your own Appwrite Function, and it fires 100 identical requests at once and counts what happened, for example "100 requests -> 22 rows in charges (expected 1). DUPLICATES FOUND".
 3. A race lab, a web page that runs two races live. In the first, 100 taps hit two Pay functions side by side, and a replay draws every request as a line so you can see the ones that read "unpaid" and charged. In the second, 100 workers grab one job, once through an Appwrite transaction and once through a doubletap lease, so you can watch the transaction hand the same job to several workers.
-4. An agent skill that teaches Claude Code, Codex and other coding agents to spot the check-then-write bug in Appwrite code and write the safe version instead.
+4. An agent skill in the open [Agent Skills](https://agentskills.io) format, so any coding agent that supports skills, like Claude Code, Codex, Cursor, GitHub Copilot or Gemini CLI, learns to spot the check-then-write bug in Appwrite code and write the safe version instead.
 
 ## How it works
 
@@ -217,7 +217,29 @@ Without doubletap you'll usually see more than 1. With it you should see exactly
 
 ### 6. Teach your coding agent
 
-The agent skill in [skills/doubletap/SKILL.md](skills/doubletap/SKILL.md) teaches Claude Code, Codex and other coding agents to spot this bug and use doubletap when they write Appwrite code. Copy it into your agent's skills folder, for example `.claude/skills/doubletap/SKILL.md` for Claude Code. It isn't in the npm package, so take it from this repo.
+The agent skill in [skills/doubletap/SKILL.md](skills/doubletap/SKILL.md) teaches a coding agent to spot this bug and use doubletap when it writes Appwrite code. It follows the open [Agent Skills](https://agentskills.io) format, so the same file works in any agent that supports skills.
+
+Install it with one command from your project folder (needs Node 22.20 or later):
+
+```bash
+npx skills add CryptoZephyr/doubletap --skill doubletap
+```
+
+The [skills](https://github.com/vercel-labs/skills) installer finds the coding agents you have and puts the skill where each one looks. Add `-g` to install it for all your projects, or `-a codex -a cursor` to choose agents yourself. It supports Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, OpenCode, Cline and about 70 others.
+
+To install by hand, copy the `skills/doubletap` folder into your project:
+
+| Agent | Folder |
+| --- | --- |
+| Codex, Cursor, GitHub Copilot, Gemini CLI, OpenCode, Amp, Cline and others that read the shared folder | `.agents/skills/doubletap/` |
+| Claude Code | `.claude/skills/doubletap/` |
+| Windsurf | `.windsurf/skills/doubletap/` |
+
+For an agent without skill support, this prints the skill as a prompt. Paste it into the chat, or into your `AGENTS.md` or rules file:
+
+```bash
+npx skills use CryptoZephyr/doubletap@doubletap
+```
 
 ### Options
 
