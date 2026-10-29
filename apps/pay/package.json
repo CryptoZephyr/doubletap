@@ -8,7 +8,7 @@
     "deploy": "node deploy.mjs"
   },
   "dependencies": {
-    "doubletap": "0.1.0",
+    "appwrite-doubletap": "0.1.0",
     "node-appwrite": "^31.0.0"
   },
   "devDependencies": {

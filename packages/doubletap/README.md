@@ -1,4 +1,4 @@
-# doubletap
+# appwrite-doubletap
 
 Exactly-once claims and expiring worker leases for Appwrite TablesDB.
 

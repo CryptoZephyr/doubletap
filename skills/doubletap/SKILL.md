@@ -28,7 +28,7 @@ Wrapping the read and write in a TablesDB transaction doesn't fix it today. With
 Use row IDs as the guard. A fixed row ID can only be created once. The second `createRow` gets `409 row_already_exists`. The `doubletap` package wraps this:
 
 ```js
-import { doubletap } from 'doubletap';
+import { doubletap } from 'appwrite-doubletap';
 
 const dt = doubletap({ tablesDB, databaseId: 'main' });
 await dt.setup(); // once, creates its state table
@@ -53,7 +53,7 @@ Without the package, the minimal safe version is to create the row first, with a
 2. Always pass `ctx.idempotencyKey` to payment providers and other external APIs. If a worker stalls past its lease, another worker can take over, and the database can't recall a charge that has already gone out.
 3. Use `lease.token` as a fencing token when writing results. The higher token wins, and a stale worker's `renew()` returns `false`.
 4. Leave stock counts and limits to Appwrite. `decrementRowColumn` with `min` is already atomic. Don't wrap it.
-5. Prove it. Run `npx doubletap prove --function <id> --count 100 ...` against the Function and check that the row count matches what you expect.
+5. Prove it. Run `npx appwrite-doubletap prove --function <id> --count 100 ...` against the Function and check that the row count matches what you expect.
 
 ## Review checklist
 

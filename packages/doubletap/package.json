@@ -1,5 +1,5 @@
 {
-  "name": "doubletap",
+  "name": "appwrite-doubletap",
   "version": "0.1.0",
   "description": "Exactly-once claims and worker leases for Appwrite TablesDB",
   "license": "MIT",

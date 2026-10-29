@@ -7,7 +7,7 @@ Live demo: https://doubletap-lab.appwrite.network · Video: not available yet ·
 ![The race lab after one run: 9 charges without doubletap, 1 with it](docs/race-lab.png)
 
 Built with: Appwrite TablesDB · Appwrite Functions · Appwrite Realtime · Appwrite Sites · TypeScript
-Status: working on Appwrite Cloud (Frankfurt, Free plan). The npm package isn't published yet.
+Status: working on Appwrite Cloud (Frankfurt, Free plan). Published on npm as appwrite-doubletap.
 
 ## The problem
 
@@ -67,12 +67,12 @@ Each press runs 200 real Function executions on a Free plan project, so the lab 
 Install from npm:
 
 ```bash
-npm install doubletap node-appwrite
+npm install appwrite-doubletap node-appwrite
 ```
 
 ```ts
 import { Client, TablesDB } from 'node-appwrite';
-import { doubletap } from 'doubletap';
+import { doubletap } from 'appwrite-doubletap';
 
 const tablesDB = new TablesDB(new Client().setEndpoint(endpoint).setProject(projectId).setKey(key));
 const dt = doubletap({ tablesDB, databaseId: 'main' });
@@ -97,7 +97,7 @@ export APPWRITE_ENDPOINT=https://fra.cloud.appwrite.io/v1
 export APPWRITE_PROJECT_ID=<your project>
 export APPWRITE_API_KEY=<key with functions, execution and rows scopes>
 
-npx doubletap prove --function pay-naive --count 100 \
+npx appwrite-doubletap prove --function pay-naive --count 100 \
   --body '{"orderId":"$RUN","requestId":"$REQ"}' \
   --table charges --where 'orderId=$RUN' --database doubletap --expect 1
 ```
