@@ -5,6 +5,7 @@ type State = 'pending' | 'done' | 'held' | 'released';
 
 interface StateRow {
   $id: string;
+  $createdAt?: string;
   k: string;
   gen: number;
   state: State;
@@ -27,6 +28,11 @@ interface OnceOptions {
 
 interface LeaseOptions {
   ttlMs?: number;
+}
+
+interface PruneOptions {
+  olderThanMs?: number;
+  maxKeys?: number;
 }
 
 interface DoubletapOptions {
@@ -54,6 +60,7 @@ export interface Doubletap {
     options?: OnceOptions,
   ): Promise<{ value: T; replayed: boolean; superseded?: boolean }>;
   lease(name: string, options?: LeaseOptions): Promise<Lease | null>;
+  prune(options?: PruneOptions): Promise<{ keys: number; rows: number }>;
 }
 
 export class DoubletapTimeoutError extends Error {
@@ -333,6 +340,94 @@ export function doubletap(options: DoubletapOptions): Doubletap {
       );
     },
 
+    /**
+     * Prunes only finished once() chains across namespaces. Lease chains are
+     * kept because deleting their latest row can let two workers hold the
+     * lease. Crashed pending keys are kept too. After pruning, an old once()
+     * retry runs again, so olderThanMs is the replay window and must exceed
+     * every ttlMs and realistic stall.
+     */
+    async prune(options: PruneOptions = {}) {
+      const olderThanMs = options.olderThanMs ?? 86_400_000;
+      const maxKeys = options.maxKeys ?? 500;
+      if (!Number.isFinite(olderThanMs) || olderThanMs <= 0) {
+        throw new Error('olderThanMs must be a positive finite number');
+      }
+      if (!Number.isSafeInteger(maxKeys) || maxKeys <= 0) {
+        throw new Error('maxKeys must be a positive safe integer');
+      }
+
+      const cutoff = Date.now() - olderThanMs;
+      const cutoffIso = new Date(cutoff).toISOString();
+      const candidateKeys = new Set<string>();
+      let cursor: string | undefined;
+
+      while (candidateKeys.size < maxKeys) {
+        const queries = [
+          Query.lessThan('$createdAt', cutoffIso),
+          Query.equal('state', 'done'),
+          Query.limit(100),
+          ...(cursor ? [Query.cursorAfter(cursor)] : []),
+        ];
+        const page = await tablesDB.listRows({ databaseId, tableId, queries });
+        if (page.rows.length === 0) break;
+
+        for (const row of page.rows as unknown as StateRow[]) {
+          if (row.k) candidateKeys.add(row.k);
+          if (candidateKeys.size >= maxKeys) break;
+        }
+
+        const last = page.rows.at(-1) as unknown as StateRow | undefined;
+        if (candidateKeys.size >= maxKeys || page.rows.length < 100 || !last) break;
+        if (last.$id === cursor) break;
+        cursor = last.$id;
+      }
+
+      let prunedKeys = 0;
+      let prunedRows = 0;
+      for (const key of candidateKeys) {
+        const current = await latest(key);
+        if (
+          !current ||
+          current.state !== 'done' ||
+          !current.$createdAt ||
+          current.$createdAt >= cutoffIso
+        ) continue;
+
+        const chain: StateRow[] = [];
+        cursor = undefined;
+        while (true) {
+          const queries = [
+            Query.equal('k', key),
+            Query.orderAsc('gen'),
+            Query.limit(100),
+            ...(cursor ? [Query.cursorAfter(cursor)] : []),
+          ];
+          const page = await tablesDB.listRows({ databaseId, tableId, queries });
+          const rows = page.rows as unknown as StateRow[];
+          chain.push(...rows);
+          if (rows.length < 100) break;
+
+          const last = rows.at(-1);
+          if (!last || last.$id === cursor) break;
+          cursor = last.$id;
+        }
+
+        chain.sort((left, right) => left.gen - right.gen);
+        for (const row of chain.filter((entry) => entry.gen <= current.gen)) {
+          try {
+            await tablesDB.deleteRow({ databaseId, tableId, rowId: row.$id });
+          } catch (error) {
+            if (!isNotFound(error)) throw error;
+          }
+          prunedRows += 1;
+        }
+        prunedKeys += 1;
+      }
+
+      return { keys: prunedKeys, rows: prunedRows };
+    },
+
     async once<T>(
       key: string,
       fn: (ctx: OnceContext) => Promise<T>,
@@ -436,3 +531,6 @@ export function doubletap(options: DoubletapOptions): Doubletap {
     },
   };
 }
+
+export { idempotent, requestKey } from './function.js';
+export type { AppwriteRequest, AppwriteResponse, IdempotentOptions } from './function.js';

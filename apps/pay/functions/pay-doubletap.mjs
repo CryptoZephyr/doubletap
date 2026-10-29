@@ -1,15 +1,48 @@
 import { ID } from 'node-appwrite';
-import { doubletap } from 'appwrite-doubletap';
+import { doubletap, idempotent } from 'appwrite-doubletap';
 import { createTablesDB, databaseId, parseBody, trace, validRequest } from './shared.mjs';
 
+const endpointHandler = idempotent(async ({ req, res, idempotencyKey }) => {
+  const body = parseBody(req);
+  const tablesDB = createTablesDB(req);
+  if (!tablesDB) return res.json({ error: 'The function request is missing Appwrite credentials' }, 401);
+
+  const context = { run: body.run, requestId: body.requestId, via: 'doubletap' };
+  await trace(tablesDB, { ...context, phase: 'start' });
+  const chargeId = ID.unique();
+  await tablesDB.createRow({
+    databaseId,
+    tableId: 'charges',
+    rowId: chargeId,
+    data: {
+      orderId: body.orderId,
+      requestId: body.requestId,
+      via: 'doubletap',
+      at: Date.now(),
+      idemKey: idempotencyKey ?? '',
+    },
+  });
+  await trace(tablesDB, { ...context, phase: 'charge' });
+  await trace(tablesDB, { ...context, phase: 'end' });
+  return res.json({ chargeId });
+}, { databaseId });
+
 export default async ({ req, res }) => {
+  if (req.headers?.['x-appwrite-trigger'] === 'schedule') {
+    const tablesDB = createTablesDB(req);
+    if (!tablesDB) return res.json({ error: 'The function request is missing Appwrite credentials' }, 401);
+    const result = await doubletap({ tablesDB, databaseId, tableId: 'doubletap' }).prune();
+    return res.json(result);
+  }
+
   const body = parseBody(req);
   if (!validRequest(body)) {
-    return res.json({ error: 'orderId, run, and requestId must be safe strings from 1 to 36 characters; mode must be pay or job' }, 400);
+    return res.json({ error: 'orderId, run, and requestId must be safe strings from 1 to 36 characters; mode must be pay, job, or endpoint' }, 400);
   }
 
   const tablesDB = createTablesDB(req);
   if (!tablesDB) return res.json({ error: 'The function request is missing Appwrite credentials' }, 401);
+  if (body.mode === 'endpoint') return endpointHandler({ req, res });
 
   const context = { run: body.run, requestId: body.requestId, via: 'doubletap' };
   await trace(tablesDB, { ...context, phase: 'start' });

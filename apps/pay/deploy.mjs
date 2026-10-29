@@ -50,7 +50,7 @@ async function getFunction(functionId) {
   }
 }
 
-async function configureFunction(functionId, name, runtime) {
+async function configureFunction(functionId, name, runtime, interval) {
   const current = await getFunction(functionId);
   const base = {
     functionId,
@@ -62,6 +62,7 @@ async function configureFunction(functionId, name, runtime) {
     entrypoint: 'index.mjs',
     scopes: [ProjectKeyScopes.RowsRead, ProjectKeyScopes.RowsWrite],
   };
+  if (interval !== undefined) base.interval = interval;
 
   if (current) {
     await functions.update({ ...base, runtime });
@@ -113,14 +114,14 @@ async function deployWithRuntime(functionId) {
 
 await import('./build.mjs');
 const configured = [];
-for (const [functionId, name] of [
-  ['pay-naive', 'Pay Naive'],
-  ['pay-doubletap', 'Pay Doubletap'],
+for (const [functionId, name, interval] of [
+  ['pay-naive', 'Pay Naive', undefined],
+  ['pay-doubletap', 'Pay Doubletap', 1440],
 ]) {
   let deployedRuntime;
   for (const runtime of runtimeCandidates) {
     try {
-      await configureFunction(functionId, name, runtime);
+      await configureFunction(functionId, name, runtime, interval);
       await deployWithRuntime(functionId);
       deployedRuntime = runtime;
       break;

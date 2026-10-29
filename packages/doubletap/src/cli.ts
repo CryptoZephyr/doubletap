@@ -14,21 +14,45 @@ export interface ProveOptions {
   whereValue: string;
   database: string;
   expect: number;
+  headers: Record<string, string>;
 }
 
 export function parseProveArgs(argv: string[]): ProveOptions {
   if (argv[0] !== 'prove') throw new Error('Expected the prove command');
   const values = new Map<string, string>();
+  const headers = new Map<string, string>();
 
   for (let index = 1; index < argv.length; index += 1) {
     const option = argv[index];
     if (!option?.startsWith('--')) throw new Error(`Unexpected argument: ${option}`);
     const value = argv[index + 1];
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${option}`);
-    if (!['--function', '--count', '--body', '--table', '--where', '--database', '--expect'].includes(option)) {
+    if (![
+      '--function',
+      '--count',
+      '--body',
+      '--table',
+      '--where',
+      '--database',
+      '--expect',
+      '--header',
+    ].includes(option)) {
       throw new Error(`Unknown option: ${option}`);
     }
-    values.set(option, value);
+    if (option === '--header') {
+      const separator = value.indexOf('=');
+      if (separator < 1) throw new Error('--header must use name=value syntax');
+      const name = value.slice(0, separator);
+      if (!/^[a-z0-9-]+$/i.test(name)) {
+        throw new Error('--header name must contain only letters, numbers, and hyphens');
+      }
+      if (name.toLowerCase().startsWith('x-appwrite-')) {
+        throw new Error('--header cannot set x-appwrite-* headers');
+      }
+      headers.set(name, value.slice(separator + 1));
+    } else {
+      values.set(option, value);
+    }
     index += 1;
   }
 
@@ -72,6 +96,7 @@ export function parseProveArgs(argv: string[]): ProveOptions {
     whereValue,
     database: values.get('--database') ?? 'doubletap',
     expect,
+    headers: Object.fromEntries(headers),
   };
 }
 
@@ -112,6 +137,19 @@ export function templateWhere(
   runId: string,
 ): { field: string; value: string } {
   return { field, value: value.replaceAll('$RUN', runId) };
+}
+
+export function templateHeaders(
+  headers: Record<string, string>,
+  runId: string,
+  requestId: string,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => [
+      name,
+      value.replaceAll('$RUN', runId).replaceAll('$REQ', requestId),
+    ]),
+  );
 }
 
 function randomId(prefix: string): string {
@@ -174,11 +212,13 @@ async function runProve(options: ProveOptions): Promise<number> {
     Array.from({ length: options.count }, async () => {
       const requestId = randomId('q');
       const body = templateValue(options.body, runId, requestId);
+      const headers = templateHeaders(options.headers, runId, requestId);
       return functions.createExecution({
         functionId: options.functionId,
         body: JSON.stringify(body),
         async: false,
         method: ExecutionMethod.POST,
+        headers,
       });
     }),
   );

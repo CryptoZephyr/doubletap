@@ -20,7 +20,10 @@ export function parseBody(req) {
 export function validRequest(body) {
   return body !== null &&
     typeof body === 'object' &&
-    (body.mode === undefined || body.mode === 'pay' || body.mode === 'job') &&
+    (body.mode === undefined ||
+      body.mode === 'pay' ||
+      body.mode === 'job' ||
+      body.mode === 'endpoint') &&
     ['orderId', 'run', 'requestId'].every((key) =>
       typeof body[key] === 'string' &&
       body[key].length >= 1 &&

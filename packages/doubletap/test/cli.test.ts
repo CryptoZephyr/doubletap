@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { parseProveArgs, templateValue, templateWhere } from '../src/cli.js';
+import {
+  parseProveArgs,
+  templateHeaders,
+  templateValue,
+  templateWhere,
+} from '../src/cli.js';
 
 describe('prove CLI arguments and templates', () => {
   test('parses the prove command and defaults', () => {
@@ -59,5 +64,40 @@ describe('prove CLI arguments and templates', () => {
       field: 'orderId',
       value: 'r_abc',
     });
+  });
+
+  test('parses repeated headers and templates their values', () => {
+    const options = parseProveArgs([
+      'prove',
+      '--function', 'pay-doubletap',
+      '--body', '{}',
+      '--table', 'charges',
+      '--where', 'orderId=$RUN',
+      '--header', 'x-idempotency-key=$RUN',
+      '--header', 'x-request-id=$REQ',
+    ]);
+
+    expect(options.headers).toEqual({
+      'x-idempotency-key': '$RUN',
+      'x-request-id': '$REQ',
+    });
+    expect(templateHeaders(options.headers, 'r_abc', 'q_xyz')).toEqual({
+      'x-idempotency-key': 'r_abc',
+      'x-request-id': 'q_xyz',
+    });
+  });
+
+  test('rejects Appwrite-reserved and invalid header names', () => {
+    const base = [
+      'prove',
+      '--function', 'pay-doubletap',
+      '--body', '{}',
+      '--table', 'charges',
+      '--where', 'orderId=$RUN',
+    ];
+    expect(() => parseProveArgs([...base, '--header', 'X-Appwrite-Key=value']))
+      .toThrow('--header cannot set x-appwrite-* headers');
+    expect(() => parseProveArgs([...base, '--header', 'bad_name=value']))
+      .toThrow('--header name must contain only letters, numbers, and hyphens');
   });
 });

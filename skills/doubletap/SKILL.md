@@ -1,6 +1,6 @@
 ---
 name: doubletap
-description: Use when writing or reviewing Appwrite code (TablesDB, Functions) where something must happen once or by one worker at a time. Triggers include payments, refunds, orders, sign-up bonuses, coupon redemption, sending an email or webhook once, job queues, cron workers, "check if it exists then create", "if not paid then charge", retries, double-clicks, and transactions used as a lock. Don't use it for counters and stock limits that Appwrite's bounded increment and decrement already handle.
+description: Use when writing or reviewing Appwrite code (TablesDB, Functions) where something must happen once or by one worker at a time. Triggers include payments, refunds, orders, sign-up bonuses, coupon redemption, sending an email or webhook once, job queues, scheduled workers, "check if it exists then create", "if not paid then charge", retries, double-clicks, and transactions used as a lock. Don't use it for counters and stock limits that Appwrite's bounded increment and decrement already handle.
 ---
 
 # doubletap
@@ -44,6 +44,12 @@ if (lease) {
   try { await work(lease.token); } finally { await lease.release(); }
 }
 ```
+
+For an Appwrite Function entrypoint, prefer `idempotent()` to replay responses
+for repeated requests with the same idempotency key. Use `doubletap()` directly
+for non-Function code or when the claim key needs custom handling.
+Callers without `x-appwrite-user-id` share the `guest` scope, so guest keys
+must be unguessable random IDs and guest responses shouldn't contain private data.
 
 Without the package, the minimal safe version is to create the row first, with a deterministic ID such as `pay_<orderId>`. Treat 409 as "already done or in progress", and only the creator does the work.
 
