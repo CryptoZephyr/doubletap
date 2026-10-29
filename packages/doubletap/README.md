@@ -7,5 +7,34 @@ Use `doubletap({ tablesDB, databaseId })`, call `setup()` once, then use
 more than 8192 characters after serialization.
 
 Expiry is based on client clocks, so clock skew matters. State rows accumulate
-and aren't pruned. A stalled `once()` callback can finish its side effect after
-another worker takes over, so pass `ctx.idempotencyKey` to external providers.
+unless they are pruned. After pruning, a retry of an old `once()` key runs
+again. Keep the replay window much longer than any `ttlMs` or realistic stall.
+A stalled `once()` callback can finish its side effect after another worker
+takes over, so pass `ctx.idempotencyKey` to external providers.
+
+## Appwrite Function idempotency
+
+Use `idempotent()` to wrap an Appwrite Function entrypoint. It uses
+`x-idempotency-key` by default and replays the original response.
+
+```ts
+import { idempotent } from 'appwrite-doubletap';
+
+export default idempotent(async ({ req, res, idempotencyKey }) => {
+  const order = await createOrder(req.bodyJson, { idempotencyKey });
+  return res.json(order);
+}, { databaseId: 'main' });
+```
+
+Set up the `doubletap` table before invoking the Function. Clients can provide
+the key with `functions.createExecution({ ..., headers: { 'x-idempotency-key': orderId } })`.
+
+## Pruning old state
+
+`prune()` removes complete, idle key chains from the whole table, across all
+namespaces. `olderThanMs` is the replay window, so choose a value far longer
+than any claim TTL or realistic worker stall.
+
+```ts
+const result = await dt.prune({ olderThanMs: 30 * 24 * 60 * 60 * 1000 });
+```
