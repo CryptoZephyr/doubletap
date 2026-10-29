@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "apps/pay"
+    "apps/pay",
+    "apps/lab"
   ],
   "scripts": {
     "build": "npm run build --workspace @crypto-zephyr/doubletap && npm run build --workspace @crypto-zephyr/pay-demo",

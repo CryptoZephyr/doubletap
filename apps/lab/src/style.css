@@ -1,0 +1,32 @@
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+  background: #fafafa;
+  line-height: 1.45;
+}
+body { margin: 0; }
+main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
+h1 { font-size: 1.6rem; margin: 0 0 8px; }
+h2 { font-size: 1.05rem; margin: 0 0 4px; }
+.lede { max-width: 720px; margin: 0 0 20px; color: #444; }
+button {
+  font: inherit; font-weight: 600; padding: 10px 20px; border: 1px solid #1a1a1a;
+  background: #1a1a1a; color: #fff; border-radius: 6px; cursor: pointer;
+}
+button:disabled { opacity: 0.5; cursor: wait; }
+.status { min-height: 1.4em; color: #555; margin: 10px 0 24px; }
+.sides { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 760px) { .sides { grid-template-columns: 1fr; } }
+.side { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 18px; }
+.code { font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; color: #555; margin: 0 0 12px; }
+.big { margin: 0; font-size: 3rem; font-weight: 700; line-height: 1; }
+.big .unit { font-size: 1rem; font-weight: 500; color: #555; }
+.side.bad .charges { color: #b42318; }
+.sub { color: #666; margin: 6px 0 14px; font-size: 0.9rem; }
+.timeline svg { width: 100%; height: auto; display: block; }
+.timeline .empty { color: #888; font-size: 0.9rem; padding: 24px 0; }
+.legend { margin-top: 28px; max-width: 760px; color: #444; }
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 4px 0 8px; vertical-align: middle; }
+.key-read { border: 2px solid #1a1a1a; width: 6px; height: 6px; }
+.key-charge { background: #b42318; }
+.key-replay { background: #9aa0a6; }

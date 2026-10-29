@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>doubletap race lab</title>
+  </head>
+  <body>
+    <main id="app">
+      <header>
+        <h1>doubletap race lab</h1>
+        <p class="lede">
+          Tap Pay 100 times at once on the same order. Both Appwrite Functions below run the same
+          check: "has this order been paid?" One checks and then writes. The other uses doubletap.
+        </p>
+        <button id="run" type="button">Tap Pay 100 times</button>
+        <p id="status" class="status" aria-live="polite"></p>
+      </header>
+      <section class="sides">
+        <article class="side" data-via="naive">
+          <h2>Without doubletap</h2>
+          <p class="code">read order, if unpaid, charge</p>
+          <p class="big"><span class="charges">0</span> <span class="unit">charges</span></p>
+          <p class="sub"><span class="done">0</span> of <span class="total">100</span> requests finished</p>
+          <div class="timeline"></div>
+        </article>
+        <article class="side" data-via="doubletap">
+          <h2>With doubletap</h2>
+          <p class="code">dt.once(orderId, charge)</p>
+          <p class="big"><span class="charges">0</span> <span class="unit">charges</span></p>
+          <p class="sub"><span class="done">0</span> of <span class="total">100</span> requests finished</p>
+          <div class="timeline"></div>
+        </article>
+      </section>
+      <section class="legend">
+        <h2>Reading the replay</h2>
+        <p>
+          Each line is one request, drawn from when the function started to when it answered.
+          <span class="key key-read"></span> it read the order and saw no charge.
+          <span class="key key-charge"></span> it charged the card.
+          <span class="key key-replay"></span> it got back the first charge instead of making a new one.
+        </p>
+        <p>
+          Without doubletap, several requests read "unpaid" before any charge landed, so each one
+          charged. With doubletap, one request claims the order in the database first and the rest
+          wait for its result.
+        </p>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
