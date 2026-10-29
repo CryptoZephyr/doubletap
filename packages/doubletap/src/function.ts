@@ -65,6 +65,11 @@ function eventBody(req: AppwriteRequest): Record<string, unknown> {
     : {};
 }
 
+/**
+ * Callers without x-appwrite-user-id share the guest scope. Guest idempotency
+ * keys must be unguessable random IDs, and guest responses should not contain
+ * private data.
+ */
 export function requestKey(
   req: AppwriteRequest,
   options: { header?: string } = {},
@@ -83,9 +88,13 @@ export function requestKey(
   const event = getHeader(req.headers, 'x-appwrite-event');
   if (!event) return null;
   const body = eventBody(req);
-  const id = typeof body.$id === 'string' ? body.$id : '';
-  const updatedAt = typeof body.$updatedAt === 'string' ? body.$updatedAt : '';
-  return `event:${event}:${id}:${updatedAt}`;
+  if (
+    typeof body.$id !== 'string' ||
+    body.$id.length === 0 ||
+    typeof body.$updatedAt !== 'string' ||
+    body.$updatedAt.length === 0
+  ) return null;
+  return `event:${event}:${body.$id}:${body.$updatedAt}`;
 }
 
 function createTablesDB(req: AppwriteRequest): TablesDB {

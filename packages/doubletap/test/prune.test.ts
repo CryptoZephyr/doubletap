@@ -20,7 +20,7 @@ describe('prune()', () => {
     await deleteTableIfPresent(tableId);
   });
 
-  test('prunes finished chains and keeps live and recent keys', async () => {
+  test('prunes finished once chains and keeps lease and recent keys', async () => {
     await lock.once('finished-key', async () => ({ value: 'finished' }));
     const released = await lock.lease('released-lease', { ttlMs: 60_000 });
     expect(released).not.toBeNull();
@@ -32,7 +32,7 @@ describe('prune()', () => {
     await lock.once('recent-key', async () => ({ value: 'recent' }));
 
     const result = await lock.prune({ olderThanMs: 1500 });
-    expect(result).toEqual({ keys: 2, rows: 4 });
+    expect(result).toEqual({ keys: 1, rows: 2 });
 
     const retried = await lock.once('finished-key', async () => ({ value: 'retried' }));
     expect(retried).toEqual({ value: { value: 'retried' }, replayed: false });
@@ -42,6 +42,7 @@ describe('prune()', () => {
 
     const reacquired = await lock.lease('released-lease');
     expect(reacquired).not.toBeNull();
+    expect(reacquired?.token).toBeGreaterThan(released?.token ?? 0);
     await reacquired?.release();
   }, 120_000);
 

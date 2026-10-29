@@ -83,6 +83,16 @@ describe('requestKey()', () => {
     })).toBe('event:tablesdb.doubletap.rows.update:row-2:2026-10-29T12:01:00.000Z');
   });
 
+  test('returns null when an event row is missing its update timestamp', () => {
+    expect(requestKey({
+      headers: {
+        'x-appwrite-trigger': 'event',
+        'x-appwrite-event': 'tablesdb.doubletap.rows.update',
+      },
+      bodyJson: { $id: 'row-1' },
+    })).toBeNull();
+  });
+
   test('returns null without a usable request key and rejects long headers', () => {
     expect(requestKey({ headers: {} })).toBeNull();
     expect(() => requestKey({

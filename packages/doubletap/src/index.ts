@@ -341,9 +341,11 @@ export function doubletap(options: DoubletapOptions): Doubletap {
     },
 
     /**
-     * Prunes the whole table across namespaces. After pruning, retries of an
-     * old once() key run again, so olderThanMs is the replay window and must
-     * be far longer than every ttlMs and any realistic stall.
+     * Prunes only finished once() chains across namespaces. Lease chains are
+     * kept because deleting their latest row can let two workers hold the
+     * lease. Crashed pending keys are kept too. After pruning, an old once()
+     * retry runs again, so olderThanMs is the replay window and must exceed
+     * every ttlMs and realistic stall.
      */
     async prune(options: PruneOptions = {}) {
       const olderThanMs = options.olderThanMs ?? 86_400_000;
@@ -363,6 +365,7 @@ export function doubletap(options: DoubletapOptions): Doubletap {
       while (candidateKeys.size < maxKeys) {
         const queries = [
           Query.lessThan('$createdAt', cutoffIso),
+          Query.equal('state', 'done'),
           Query.limit(100),
           ...(cursor ? [Query.cursorAfter(cursor)] : []),
         ];
@@ -384,11 +387,12 @@ export function doubletap(options: DoubletapOptions): Doubletap {
       let prunedRows = 0;
       for (const key of candidateKeys) {
         const current = await latest(key);
-        if (!current || !current.$createdAt || current.$createdAt >= cutoffIso) continue;
-        const isFinished = current.state === 'done' || current.state === 'released';
-        const isExpired = (current.state === 'held' || current.state === 'pending') &&
-          current.expiresAt < cutoff;
-        if (!isFinished && !isExpired) continue;
+        if (
+          !current ||
+          current.state !== 'done' ||
+          !current.$createdAt ||
+          current.$createdAt >= cutoffIso
+        ) continue;
 
         const chain: StateRow[] = [];
         cursor = undefined;
@@ -410,7 +414,7 @@ export function doubletap(options: DoubletapOptions): Doubletap {
         }
 
         chain.sort((left, right) => left.gen - right.gen);
-        for (const row of chain) {
+        for (const row of chain.filter((entry) => entry.gen <= current.gen)) {
           try {
             await tablesDB.deleteRow({ databaseId, tableId, rowId: row.$id });
           } catch (error) {

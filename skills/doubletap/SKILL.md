@@ -48,6 +48,8 @@ if (lease) {
 For an Appwrite Function entrypoint, prefer `idempotent()` to replay responses
 for repeated requests with the same idempotency key. Use `doubletap()` directly
 for non-Function code or when the claim key needs custom handling.
+Callers without `x-appwrite-user-id` share the `guest` scope, so guest keys
+must be unguessable random IDs and guest responses shouldn't contain private data.
 
 Without the package, the minimal safe version is to create the row first, with a deterministic ID such as `pay_<orderId>`. Treat 409 as "already done or in progress", and only the creator does the work.
 
