@@ -36,7 +36,7 @@ Appwrite has no built-in idempotency for function calls or row updates. The obvi
 
 doubletap gives you four things:
 
-1. A package with two calls. `once(key, fn)` runs a payment or job exactly once per key, and every retry gets the first result back. `lease(name)` gives one worker a job at a time and passes it to exactly one other worker if the first one dies.
+1. A package with two calls. `once(key, fn)` runs a payment or job exactly once per key, and every retry gets the first result back. `lease(name)` gives one worker a job at a time and passes it to exactly one other worker if the first one dies. For Appwrite Functions, `idempotent(handler)` does the same in one line by reading the key from the request.
 2. A `prove` command. Point it at your own Appwrite Function, and it fires 100 identical requests at once and counts what happened, for example "100 requests -> 22 rows in charges (expected 1). DUPLICATES FOUND".
 3. A race lab, a web page that runs two races live. In the first, 100 taps hit two Pay functions side by side, and a replay draws every request as a line so you can see the ones that read "unpaid" and charged. In the second, 100 workers grab one job, once through an Appwrite transaction and once through a doubletap lease, so you can watch the transaction hand the same job to several workers.
 4. An agent skill that teaches Claude Code, Codex and other coding agents to spot the check-then-write bug in Appwrite code and write the safe version instead.
@@ -87,7 +87,7 @@ flowchart TB
 | Appwrite product | How doubletap uses it | Why it matters |
 | --- | --- | --- |
 | TablesDB | Every claim and lease is a row with a fixed ID. `createRow` on an ID that exists returns `409 row_already_exists`, so exactly one request wins. The demo also keeps `charges`, `jobs` and `trace` tables. | This is the guard itself. No Redis, lock server or transaction is involved. |
-| Functions | `pay-naive` and `pay-doubletap` are the two Pay endpoints. Each also has a job mode for the worker race. `prove` fires executions at any Function you name. | The race happens inside real Appwrite Functions, the way an app would run in production. |
+| Functions | `idempotent()` wraps a Function entrypoint. It takes the key from the `x-idempotency-key` header, scoped to `x-appwrite-user-id`, or from an event trigger's `x-appwrite-event` plus the row's `$id` and `$updatedAt`, and replays the first response to every duplicate. `pay-naive` and `pay-doubletap` are the two Pay endpoints, and `pay-doubletap` also runs `prune()` once a day on an Appwrite schedule. `prove` fires executions, with headers, at any Function you name. | The race happens inside real Appwrite Functions, the way an app would run in production, and Appwrite's own request headers and events supply the key. |
 | Realtime | The lab subscribes to the `charges` and `trace` tables and updates the counters as requests finish. | You watch the race as it happens instead of reading a log afterwards. |
 | Sites | The race lab is hosted at doubletap-lab.appwrite.network. | The whole demo, from page to database, runs on Appwrite. |
 
@@ -98,7 +98,8 @@ Checked on 29 Oct 2026:
 - Race lab: https://doubletap-lab.appwrite.network, on Appwrite Sites.
 - Functions `pay-naive` and `pay-doubletap`, Node 22, Appwrite Cloud Frankfurt.
 - TablesDB database `doubletap` with the tables `charges`, `jobs`, `trace` and `doubletap`.
-- npm package `appwrite-doubletap` 0.1.0, installed fresh and run with `npx appwrite-doubletap prove`.
+- npm package `appwrite-doubletap` 0.2.0, installed fresh and run with `npx appwrite-doubletap prove`.
+- `pay-doubletap` endpoint mode, wrapped in `idempotent()`: 100 identical requests with the same `x-idempotency-key` made 1 charge in each of 4 runs.
 
 The project is on the Free plan, which allows two Functions. Both are used, so the lab waits a minute between races to stay inside the monthly execution limit.
 
@@ -127,6 +128,21 @@ if (lease) {
   try { await runReport(lease.token); } finally { await lease.release(); }
 }
 ```
+
+In an Appwrite Function, wrap the entrypoint instead:
+
+```js
+import { idempotent } from 'appwrite-doubletap';
+
+export default idempotent(async ({ req, res, idempotencyKey }) => {
+  const charge = await chargeCard(req.bodyJson.orderId, { idempotencyKey });
+  return res.json(charge);
+}, { databaseId: 'main' });
+```
+
+Callers send the key as a header, for example `functions.createExecution({ functionId: 'pay', body, headers: { 'x-idempotency-key': orderId } })`. Event-triggered Functions get a key from the event automatically. Callers who aren't signed in share one `guest` scope, so their keys should be random IDs.
+
+`dt.prune()` deletes finished `once()` keys older than a day. Lease chains are kept, because deleting them could let two workers hold the same lease.
 
 `once()` options are `ttlMs` (how long a claim lives before a retry may take over), `waitMs` and `pollMs`. If waiting runs past `waitMs`, it throws `DoubletapTimeoutError`. Results must be JSON and at most 8192 characters.
 
@@ -185,14 +201,14 @@ The demo Functions need a TablesDB database called `doubletap`. `apps/pay/setup.
 
 - A stalled request can still finish an outside call, like a card charge, after another request has taken over. The database can't undo that. Always pass `ctx.idempotencyKey` to your payment provider too.
 - Expiry uses the client's clock, so servers with badly drifting clocks can shorten or stretch a lease.
-- Old state rows aren't cleaned up yet.
+- `prune()` only removes finished `once()` keys. Lease rows and crashed `pending` keys stay in the table.
+- On the Free plan, Function schedules must be an interval, not a cron time, so the daily cleanup runs at a time Appwrite picks.
 - In a browser, waiting on each Function call (`async: false`) makes Appwrite run the calls one after another, which hides the race. The lab sends async executions and watches the results through Realtime.
 - doubletap doesn't read your source code to find races. `prove` tests a Function from the outside, and the agent skill helps coding agents avoid the pattern while they write.
 - If appwrite/appwrite#14489 is fixed, the transaction row in the evidence table will stop failing. The check-then-charge result doesn't depend on that bug.
 
 ## Roadmap
 
-- Prune old state rows.
 - A `prove` mode for direct TablesDB writes, without a Function.
 
 ## License
