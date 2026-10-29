@@ -17,6 +17,9 @@
     "dist",
     "README.md"
   ],
+  "bin": {
+    "doubletap": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
