@@ -1,5 +1,5 @@
 {
-  "name": "@crypto-zephyr/race-lab",
+  "name": "doubletap-race-lab",
   "private": true,
   "type": "module",
   "scripts": {

@@ -1,5 +1,5 @@
 import { ID } from 'node-appwrite';
-import { doubletap } from '@crypto-zephyr/doubletap';
+import { doubletap } from 'doubletap';
 import { createTablesDB, databaseId, parseBody, trace, validRequest } from './shared.mjs';
 
 export default async ({ req, res }) => {

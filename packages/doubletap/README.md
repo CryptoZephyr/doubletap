@@ -1,4 +1,4 @@
-# @crypto-zephyr/doubletap
+# doubletap
 
 Exactly-once claims and expiring worker leases for Appwrite TablesDB.
 

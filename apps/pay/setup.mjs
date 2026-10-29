@@ -1,5 +1,5 @@
 import { Client, Permission, Role, TablesDB, TablesDBIndexType } from 'node-appwrite';
-import { doubletap } from '@crypto-zephyr/doubletap';
+import { doubletap } from 'doubletap';
 
 const endpoint = process.env.APPWRITE_ENDPOINT ?? 'https://fra.cloud.appwrite.io/v1';
 const projectId = process.env.APPWRITE_PROJECT_ID ?? '6ae32d6f0034eb612a86';

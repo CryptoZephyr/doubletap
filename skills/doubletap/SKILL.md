@@ -28,7 +28,7 @@ Wrapping the read and write in a TablesDB transaction doesn't fix it today. With
 Use row IDs as the guard. A fixed row ID can only be created once. The second `createRow` gets `409 row_already_exists`. The `doubletap` package wraps this:
 
 ```js
-import { doubletap } from '@crypto-zephyr/doubletap';
+import { doubletap } from 'doubletap';
 
 const dt = doubletap({ tablesDB, databaseId: 'main' });
 await dt.setup(); // once, creates its state table

@@ -1,5 +1,5 @@
 {
-  "name": "@crypto-zephyr/pay-demo",
+  "name": "doubletap-pay-demo",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "deploy": "node deploy.mjs"
   },
   "dependencies": {
-    "@crypto-zephyr/doubletap": "0.1.0",
+    "doubletap": "0.1.0",
     "node-appwrite": "^31.0.0"
   },
   "devDependencies": {

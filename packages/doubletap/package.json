@@ -1,9 +1,13 @@
 {
-  "name": "@crypto-zephyr/doubletap",
+  "name": "doubletap",
   "version": "0.1.0",
   "description": "Exactly-once claims and worker leases for Appwrite TablesDB",
   "license": "MIT",
-  "author": "CryptoZephyr",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CryptoZephyr/doubletap.git"
+  },
+  "homepage": "https://doubletap-lab.appwrite.network",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,7 +19,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "bin": {
     "doubletap": "dist/cli.js"

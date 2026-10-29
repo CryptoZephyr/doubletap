@@ -7,7 +7,7 @@
     "apps/lab"
   ],
   "scripts": {
-    "build": "npm run build --workspace @crypto-zephyr/doubletap && npm run build --workspace @crypto-zephyr/pay-demo",
-    "test": "npm test --workspace @crypto-zephyr/doubletap"
+    "build": "npm run build --workspace doubletap && npm run build --workspace doubletap-pay-demo",
+    "test": "npm test --workspace doubletap"
   }
 }

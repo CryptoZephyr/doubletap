@@ -63,16 +63,15 @@ Each press runs 200 real Function executions on a Free plan project, so please d
 
 ## Using the package
 
-The package isn't on npm yet. Install it from this repo:
+Install from npm:
 
 ```bash
-git clone https://github.com/CryptoZephyr/doubletap
-cd doubletap && npm install && npm run build -w packages/doubletap
+npm install doubletap node-appwrite
 ```
 
 ```ts
 import { Client, TablesDB } from 'node-appwrite';
-import { doubletap } from '@crypto-zephyr/doubletap';
+import { doubletap } from 'doubletap';
 
 const tablesDB = new TablesDB(new Client().setEndpoint(endpoint).setProject(projectId).setKey(key));
 const dt = doubletap({ tablesDB, databaseId: 'main' });
