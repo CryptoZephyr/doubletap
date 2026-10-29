@@ -1,0 +1,11 @@
+{
+  "name": "doubletap",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @crypto-zephyr/doubletap",
+    "test": "npm test --workspace @crypto-zephyr/doubletap"
+  }
+}
