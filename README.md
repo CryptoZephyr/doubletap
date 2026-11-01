@@ -9,7 +9,7 @@ doubletap makes sure something in your Appwrite app happens once, even when the 
 
 It's for developers building on Appwrite who charge cards, send emails, hand out sign-up bonuses or run background jobs. Say a customer taps Pay twice on a slow connection and their phone retries. With ordinary Appwrite code, the order can get charged several times. With doubletap, it's charged once and every retry gets the same receipt back.
 
-Live demo: https://doubletap-lab.appwrite.network · Integrate: [Add doubletap to your app](#add-doubletap-to-your-app) · Video: [watch on YouTube](https://youtu.be/7fuUciXLzew) · Docs: this README · Submission: not linked yet
+Live demo: https://doubletap-lab.appwrite.network · Integrate: [Add doubletap to your app](#add-doubletap-to-your-app) · Video: [watch on YouTube](https://youtu.be/7fuUciXLzew) · Docs: this README
 
 ![The race lab after one live run: 10 charges without doubletap, 1 with it](docs/race-lab.png)
 
