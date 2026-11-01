@@ -253,7 +253,7 @@ export APPWRITE_PROJECT_ID=<your project>
 export APPWRITE_API_KEY=<key with functions, execution and rows scopes>
 
 npx appwrite-doubletap prove --function pay-naive --count 100 \
-  --body '{"orderId":"$RUN","requestId":"$REQ"}' \
+  --body '{"orderId":"$RUN","run":"$RUN","requestId":"$REQ"}' \
   --table charges --where 'orderId=$RUN' --database doubletap --expect 1
 ```
 
